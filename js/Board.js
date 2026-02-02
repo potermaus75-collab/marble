@@ -38,7 +38,6 @@ export default class Board {
             }
             board.appendChild(tile);
         });
-        // 초기 말 위치
         this.moveToken(0, 0, true);
         this.moveToken(1, 0, true);
     }
@@ -46,10 +45,11 @@ export default class Board {
     moveToken(pid, pos, instant=false) {
         const tile = document.getElementById(`tile-${pos}`);
         const token = document.getElementById(`p${pid}-token`);
+        // 말이 타일 중앙에 오도록 약간의 랜덤성 제거하고 정렬
         const gap = pid===0 ? -6 : 6;
         
-        const tLeft = tile.offsetLeft + tile.offsetWidth/2 - 20 + gap;
-        const tTop = tile.offsetTop + tile.offsetHeight/2 - 20;
+        const tLeft = tile.offsetLeft + tile.offsetWidth/2 - 17.5 + gap; // 17.5는 말 너비 절반
+        const tTop = tile.offsetTop + tile.offsetHeight/2 - 25; 
 
         if(instant) token.style.transition = 'none';
         else token.style.transition = 'all 0.3s ease-out';
@@ -62,11 +62,9 @@ export default class Board {
 
     build(pid, pos, level) {
         const tile = document.getElementById(`tile-${pos}`);
-        // 기존 제거
         const old = tile.querySelector('.b-container');
         if(old) old.remove();
 
-        // 3D 큐브 생성
         const bc = document.createElement('div');
         bc.className = 'b-container';
         const cube = document.createElement('div');
@@ -93,21 +91,19 @@ export default class Board {
         const plane = document.getElementById('airplane');
         const token = document.getElementById(`p${pid}-token`);
         
-        // 1. 토큰 탑승
         token.style.left = '50%'; token.style.top = '50%';
         token.style.transform = 'translate(-50%,-50%) translateZ(20px)';
         await new Promise(r=>setTimeout(r,800));
         
-        // 2. 이륙
         plane.style.transform = 'translate(-50%,-50%) translateZ(150px) rotateZ(360deg)';
         await new Promise(r=>setTimeout(r,1000));
         
-        // 3. 착륙
         plane.style.transform = 'translate(-50%,-50%) translateZ(10px)';
-        this.moveToken(pid, dest, true); // 즉시 이동
-        token.style.transform = ''; // 원래대로
+        this.moveToken(pid, dest, true);
+        token.style.transform = ''; 
     }
 
+    // === 모바일 터치 지원 및 마우스 컨트롤 ===
     setupControls() {
         let rotX=55, rotZ=0, scale=0.8;
         let isDrag=false, lastX, lastY;
@@ -116,17 +112,40 @@ export default class Board {
         
         const apply = () => cont.style.transform = `scale(${scale}) rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
         
-        scene.addEventListener('mousedown', e=>{isDrag=true; lastX=e.clientX; lastY=e.clientY});
-        window.addEventListener('mousemove', e=>{
+        // 공통 핸들러
+        const start = (x, y) => { isDrag=true; lastX=x; lastY=y; };
+        const move = (x, y) => {
             if(!isDrag) return;
-            rotZ += (e.clientX-lastX)*0.5;
-            rotX -= (e.clientY-lastY)*0.5;
-            rotX = Math.max(10, Math.min(80, rotX));
-            lastX=e.clientX; lastY=e.clientY;
+            rotZ += (x - lastX) * 0.5;
+            rotX -= (y - lastY) * 0.5;
+            rotX = Math.max(20, Math.min(80, rotX)); // 각도 제한
+            lastX = x; lastY = y;
             apply();
-        });
-        window.addEventListener('mouseup', ()=>isDrag=false);
+        };
+        const end = () => { isDrag=false; };
+
+        // Mouse Events
+        scene.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+        window.addEventListener('mouseup', end);
+
+        // Touch Events (모바일)
+        scene.addEventListener('touchstart', e => {
+            if(e.touches.length === 1) {
+                start(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchmove', e => {
+            if(isDrag && e.touches.length === 1) {
+                e.preventDefault(); // 스크롤 방지 (중요!)
+                move(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchend', end);
         
+        // Zoom
         document.getElementById('zoom-range').addEventListener('input', e=>{
             scale = e.target.value; apply();
         });
