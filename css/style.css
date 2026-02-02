@@ -1,1 +1,140 @@
+:root {
+    --p1-color: #00a8ff;
+    --p2-color: #e84118;
+    --tile-size: 55px;
+}
 
+body {
+    margin: 0; background: #1e272e; overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    touch-action: none; user-select: none;
+}
+
+/* === 3D 엔진 === */
+#scene { width: 100vw; height: 100vh; perspective: 1200px; display: flex; justify-content: center; align-items: center; }
+#board-container { transform-style: preserve-3d; transition: transform 0.1s linear; }
+#board {
+    width: calc(var(--tile-size) * 11 + 24px);
+    height: calc(var(--tile-size) * 11 + 24px);
+    display: grid; grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(11, 1fr);
+    gap: 2px; background: #2f3640; padding: 6px; border-radius: 8px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.7); transform-style: preserve-3d;
+}
+
+/* 타일 */
+.tile {
+    background: #ecf0f1; display: flex; flex-direction: column; align-items: center;
+    border: 1px solid #bdc3c7; transform-style: preserve-3d; font-size: 8px; text-align: center;
+    position: relative;
+}
+.tile-header { width: 100%; height: 15px; margin-bottom: 2px; opacity: 0.9; }
+.tile-name { font-weight: bold; margin-top:2px; z-index:2; text-shadow:0 0 2px white; }
+.tile-price { font-size: 6px; color:#555; margin-top:auto; margin-bottom:2px; }
+.corner { background: #fff; font-weight: bold; }
+.owned-p0 { background: #dff9fb; box-shadow: inset 0 0 0 2px var(--p1-color); }
+.owned-p1 { background: #ffcccc; box-shadow: inset 0 0 0 2px var(--p2-color); }
+
+/* === 플레이어 말 (2D 이미지를 3D로 세우기) === */
+.token {
+    width: 40px; height: 40px; position: absolute; top:0; left:0;
+    transform: translate3d(0,0,0) rotateX(-90deg) translateY(-20px);
+    transform-origin: bottom center; z-index: 200;
+    transition: all 0.4s ease-out;
+    background-size: contain; background-repeat: no-repeat; background-position: center bottom;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+}
+/* 이미지 에셋 적용 (없으면 색상박스로 대체) */
+.token.p1 { background-image: url('../assets/p1.png'); background-color: transparent; }
+.token.p2 { background-image: url('../assets/p2.png'); background-color: transparent; }
+/* 이미지가 없을 경우를 위한 Fallback */
+.token.p1:not([style*="url"]) { background: var(--p1-color); border-radius: 50%; border: 2px solid white; }
+.token.p2:not([style*="url"]) { background: var(--p2-color); border-radius: 50%; border: 2px solid white; }
+
+/* === 3D 건물 (CSS Cube) === */
+.b-container {
+    position: absolute; bottom: 0; left: 50%;
+    transform: translateX(-50%) rotateX(-90deg); transform-origin: bottom center;
+    transform-style: preserve-3d; pointer-events: none;
+}
+.cube { position: relative; transform-style: preserve-3d; }
+.face { position: absolute; border: 1px solid rgba(0,0,0,0.1); }
+
+/* 건물 스타일 정의 */
+.villa .face { width: 20px; background: #ff9ff3; }
+.villa .face:not(:last-child) { height: 15px; top: -15px; }
+.villa .face:last-child { width:20px; height:20px; top:-15px; transform: rotateX(90deg) translateZ(10px); background:#f368e0; }
+.villa .face:nth-child(1) { transform: translateZ(10px); }
+.villa .face:nth-child(2) { transform: rotateY(90deg) translateZ(10px); }
+.villa .face:nth-child(3) { transform: rotateY(180deg) translateZ(10px); }
+.villa .face:nth-child(4) { transform: rotateY(-90deg) translateZ(10px); }
+
+.building .face { width: 24px; background: #54a0ff; }
+.building .face:not(:last-child) { height: 30px; top: -30px; }
+.building .face:last-child { width:24px; height:24px; top:-30px; transform: rotateX(90deg) translateZ(12px); background:#2e86de; }
+.building .face:nth-child(1) { transform: translateZ(12px); }
+.building .face:nth-child(2) { transform: rotateY(90deg) translateZ(12px); }
+.building .face:nth-child(3) { transform: rotateY(180deg) translateZ(12px); }
+.building .face:nth-child(4) { transform: rotateY(-90deg) translateZ(12px); }
+
+.hotel .face { width: 28px; background: #ff6b6b; }
+.hotel .face:not(:last-child) { height: 50px; top: -50px; }
+.hotel .face:last-child { width:28px; height:28px; top:-50px; transform: rotateX(90deg) translateZ(14px); background:#ee5253; }
+.hotel .face:nth-child(1) { transform: translateZ(14px); }
+.hotel .face:nth-child(2) { transform: rotateY(90deg) translateZ(14px); }
+.hotel .face:nth-child(3) { transform: rotateY(180deg) translateZ(14px); }
+.hotel .face:nth-child(4) { transform: rotateY(-90deg) translateZ(14px); }
+
+.landmark .face { width: 32px; background: linear-gradient(to bottom, #f1c40f, #f39c12); box-shadow:0 0 10px gold; }
+.landmark .face:not(:last-child) { height: 80px; top: -80px; }
+.landmark .face:last-child { width:32px; height:32px; top:-80px; transform: rotateX(90deg) translateZ(16px); background:#fff; }
+.landmark .face:nth-child(1) { transform: translateZ(16px); }
+.landmark .face:nth-child(2) { transform: rotateY(90deg) translateZ(16px); }
+.landmark .face:nth-child(3) { transform: rotateY(180deg) translateZ(16px); }
+.landmark .face:nth-child(4) { transform: rotateY(-90deg) translateZ(16px); }
+
+/* === 센터 장식 === */
+#center-area { grid-column: 2/11; grid-row: 2/11; position: relative; transform-style: preserve-3d; pointer-events: none; }
+#airplane { position: absolute; top:50%; left:50%; width:60px; height:60px; transform: translate(-50%, -50%) translateZ(10px); transform-style: preserve-3d; transition: transform 1s; }
+.plane-body { width:10px; height:50px; background:white; position:absolute; top:5px; left:25px; border-radius:5px; }
+.plane-wing { width:60px; height:10px; background:#bdc3c7; position:absolute; top:20px; left:0; border-radius:2px; }
+
+#card-deck { position: absolute; top:20%; left:50%; transform: translateX(-50%); width:40px; height:60px; transform-style: preserve-3d; }
+.deck-card { position:absolute; width:100%; height:100%; background: linear-gradient(45deg, #f1c40f, #e67e22); border:1px solid white; border-radius:3px; }
+#anim-card { display:none; position:absolute; top:0; left:0; width:100%; height:100%; transform-style: preserve-3d; background:#f1c40f; border-radius:4px; transition: all 1s ease-in-out; z-index: 100; }
+.card-front, .card-back { position: absolute; width:100%; height:100%; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 8px; border:1px solid white; }
+.card-back { background: orange; transform: rotateY(0deg); }
+.card-front { background: white; transform: rotateY(180deg); color: #333; }
+
+/* === UI === */
+#ui-panel { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: rgba(255,255,255,0.95); padding: 10px 20px; border-radius: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 1000; }
+.p1-c { color: var(--p1-color); font-weight: bold; font-size: 12px; }
+.p2-c { color: var(--p2-color); font-weight: bold; font-size: 12px; }
+.p-money { font-weight: 800; color: #27ae60; }
+#btn-roll { width: 70px; height: 70px; border-radius: 50%; border:none; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4); }
+#btn-roll:disabled { background: #b2bec3; box-shadow: none; cursor: default; }
+
+#property-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+.card-ui { background: white; width: 320px; border-radius: 15px; overflow: hidden; animation: slideUp 0.3s; }
+@keyframes slideUp { from{transform:translateY(50px);opacity:0} to{transform:translateY(0);opacity:1} }
+.card-header { padding: 15px; color: white; font-weight: bold; font-size: 18px; text-align: center; }
+.card-body { padding: 15px; font-size: 13px; color: #333; }
+.price-table { width: 100%; border-collapse: collapse; }
+.price-table td { padding: 4px; border-bottom: 1px solid #eee; }
+.highlight { background: #f0f8ff; color: #007bff; font-weight: bold; }
+.card-actions { display: flex; padding: 10px; gap: 10px; background: #f9f9f9; }
+.action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
+.btn-buy { background: #2ecc71; } .btn-pass { background: #95a5a6; } .btn-acquire { background: #e67e22; }
+
+#dice-wrapper { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 100px; z-index: 1500; display: none; pointer-events: none; }
+.dice-cube { width: 50px; height: 50px; position: absolute; transform-style: preserve-3d; }
+.dice-cube .face { width:100%; height:100%; background:white; border:1px solid #999; display:flex; justify-content:center; align-items:center; font-size:20px; font-weight:bold; position: absolute; }
+.dice-cube .f1 { transform: rotateY(0deg) translateZ(25px); }
+.dice-cube .f2 { transform: rotateY(90deg) translateZ(25px); }
+.dice-cube .f3 { transform: rotateY(180deg) translateZ(25px); }
+.dice-cube .f4 { transform: rotateY(-90deg) translateZ(25px); }
+.dice-cube .f5 { transform: rotateX(90deg) translateZ(25px); }
+.dice-cube .f6 { transform: rotateX(-90deg) translateZ(25px); }
+
+#toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; text-align: center; }
+#zoom-control { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); height: 150px; z-index: 1000; }
+input[type=range][orient=vertical] { writing-mode: bt-lr; -webkit-appearance: slider-vertical; height: 100%; }
